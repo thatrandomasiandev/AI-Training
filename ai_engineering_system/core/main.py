@@ -11,11 +11,8 @@ import torch
 from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
-from .ml import MLModule
-from .nlp import NLPModule
-from .vision import VisionModule
-from .rl import RLModule
-from .neural import NeuralModule
+from .orchestrator import AIEngineeringOrchestrator, SystemConfig, EngineeringTask
+from .integration import AIIntegrationFramework, IntegrationConfig
 from ..utils.config import Config
 from ..utils.logger import setup_logger
 
@@ -61,12 +58,16 @@ class EngineeringAI:
             
         self.logger.info(f"Initializing EngineeringAI on device: {self.device}")
         
-        # Initialize AI modules
-        self.ml_module = MLModule(self.config, self.device)
-        self.nlp_module = NLPModule(self.config, self.device)
-        self.vision_module = VisionModule(self.config, self.device)
-        self.rl_module = RLModule(self.config, self.device)
-        self.neural_module = NeuralModule(self.config, self.device)
+        # Initialize system configuration
+        system_config = SystemConfig(
+            device=device,
+            enable_monitoring=True,
+            enable_caching=True,
+            max_concurrent_requests=10
+        )
+        
+        # Initialize the orchestrator
+        self.orchestrator = AIEngineeringOrchestrator(system_config)
         
         # Thread pools for parallel processing
         self.thread_pool = ThreadPoolExecutor(max_workers=4)
@@ -94,36 +95,48 @@ class EngineeringAI:
         
         self.logger.info(f"Analyzing engineering problem with modules: {modules}")
         
-        # Prepare tasks for parallel execution
-        tasks = []
+        # Determine problem type based on available data
+        problem_type = self._determine_problem_type(problem_data)
         
-        if "ml" in modules and "numerical_data" in problem_data:
-            tasks.append(self._run_ml_analysis(problem_data["numerical_data"]))
-            
-        if "nlp" in modules and "text_data" in problem_data:
-            tasks.append(self._run_nlp_analysis(problem_data["text_data"]))
-            
-        if "vision" in modules and "image_data" in problem_data:
-            tasks.append(self._run_vision_analysis(problem_data["image_data"]))
-            
-        if "rl" in modules and "optimization_data" in problem_data:
-            tasks.append(self._run_rl_analysis(problem_data["optimization_data"]))
-            
-        if "neural" in modules and "complex_data" in problem_data:
-            tasks.append(self._run_neural_analysis(problem_data["complex_data"]))
+        # Create engineering task
+        task = EngineeringTask(
+            task_id=f"analysis_{int(time.time() * 1000)}",
+            task_type=problem_type,
+            input_data=problem_data,
+            requirements={'modules': modules}
+        )
         
-        # Execute tasks in parallel
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Process task using orchestrator
+        result = await self.orchestrator.process_engineering_task(task)
         
-        # Process results
+        # Convert result to AIResult format
         analysis_results = {}
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                self.logger.error(f"Error in module {modules[i]}: {result}")
-                continue
-            analysis_results[modules[i]] = result
+        if result.success and result.result:
+            for module in result.modules_used:
+                analysis_results[module] = AIResult(
+                    module=module,
+                    confidence=result.confidence,
+                    result=result.result,
+                    metadata=result.metadata,
+                    processing_time=result.execution_time
+                )
         
         return analysis_results
+    
+    def _determine_problem_type(self, problem_data: Dict[str, Any]) -> str:
+        """Determine problem type based on available data."""
+        if "numerical_data" in problem_data:
+            return "structural_analysis"
+        elif "text_data" in problem_data:
+            return "document_analysis"
+        elif "image_data" in problem_data:
+            return "image_processing"
+        elif "optimization_data" in problem_data:
+            return "optimization"
+        elif "complex_data" in problem_data:
+            return "design_optimization"
+        else:
+            return "general_analysis"
     
     async def _run_ml_analysis(self, data: np.ndarray) -> AIResult:
         """Run machine learning analysis."""
@@ -305,19 +318,9 @@ class EngineeringAI:
     
     def get_system_status(self) -> Dict[str, Any]:
         """Get the current status of all AI modules."""
-        return {
-            "device": self.device,
-            "modules": {
-                "ml": self.ml_module.get_status(),
-                "nlp": self.nlp_module.get_status(),
-                "vision": self.vision_module.get_status(),
-                "rl": self.rl_module.get_status(),
-                "neural": self.neural_module.get_status()
-            },
-            "config": self.config.get_summary()
-        }
+        return self.orchestrator.get_system_status()
     
-    def shutdown(self):
+    async def shutdown(self):
         """Shutdown the AI system and cleanup resources."""
         self.logger.info("Shutting down EngineeringAI system")
         
@@ -325,17 +328,8 @@ class EngineeringAI:
         self.thread_pool.shutdown(wait=True)
         self.process_pool.shutdown(wait=True)
         
-        # Cleanup modules
-        if hasattr(self.ml_module, 'cleanup'):
-            self.ml_module.cleanup()
-        if hasattr(self.nlp_module, 'cleanup'):
-            self.nlp_module.cleanup()
-        if hasattr(self.vision_module, 'cleanup'):
-            self.vision_module.cleanup()
-        if hasattr(self.rl_module, 'cleanup'):
-            self.rl_module.cleanup()
-        if hasattr(self.neural_module, 'cleanup'):
-            self.neural_module.cleanup()
+        # Shutdown orchestrator
+        await self.orchestrator.shutdown()
         
         self.logger.info("EngineeringAI system shutdown complete")
     
@@ -345,4 +339,5 @@ class EngineeringAI:
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit."""
-        self.shutdown()
+        import asyncio
+        asyncio.run(self.shutdown())
