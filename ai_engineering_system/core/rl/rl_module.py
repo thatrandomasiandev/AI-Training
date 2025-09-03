@@ -21,7 +21,7 @@ from .agents import EngineeringAgent, PPOAgent, DQNAgent
 from .algorithms import PPO, DQN, A2C, SAC
 from .optimization import DesignOptimizer, ParameterOptimizer
 from .control import AdaptiveController, PIDController
-from ..utils.config import Config
+from ...utils.config import Config
 
 
 @dataclass

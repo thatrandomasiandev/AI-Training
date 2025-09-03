@@ -19,7 +19,7 @@ from .cad_analyzer import CADAnalyzer
 from .object_detector import EngineeringObjectDetector
 from .feature_extractor import EngineeringFeatureExtractor
 from .visual_inspector import QualityInspector
-from ..utils.config import Config
+from ...utils.config import Config
 
 
 class VisionModule:

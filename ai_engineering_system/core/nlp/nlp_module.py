@@ -24,7 +24,7 @@ from .document_analyzer import TechnicalDocumentAnalyzer
 from .chatbot import EngineeringChatbot
 from .knowledge_extractor import EngineeringKnowledgeExtractor
 from .embeddings import EngineeringEmbeddings
-from ..utils.config import Config
+from ...utils.config import Config
 
 
 class NLPModule:
