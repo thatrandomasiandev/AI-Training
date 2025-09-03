@@ -5,7 +5,7 @@ Configuration management for the AI engineering system.
 import yaml
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 import logging
 

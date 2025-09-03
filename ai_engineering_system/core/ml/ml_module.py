@@ -23,7 +23,7 @@ import torch.optim as optim
 from .models import EngineeringClassifier, EngineeringRegressor, EnsembleModel
 from .preprocessing import DataPreprocessor, FeatureSelector
 from .validation import ModelValidator, CrossValidator
-from ..utils.config import Config
+from ...utils.config import Config
 
 
 class MLModule:
